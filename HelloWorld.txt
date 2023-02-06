@@ -1,0 +1,29 @@
+_START {
+    x : int = 5
+    y : flt = 10.0
+    put x - y
+
+    c = x^3
+    put c 
+
+    put "Hello, world"
+
+    msg : str = "Hello, world"
+    put msg
+
+    wipe msg
+    msg = "Other"
+    put msg
+
+    i : int = 0
+    for 15 {
+        i++
+        put i
+    }
+}
+
+_FN add(a, b) -> i32 {
+    <- a + b
+}
+
+

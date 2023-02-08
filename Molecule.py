@@ -27,6 +27,8 @@ class Program:
             return 0
         elif line[index] == 'f':
             return 1
+        elif line[index] == 's':
+            return 2
 
     def type_get() -> int:
         ...
@@ -54,15 +56,18 @@ class Program:
                     for i in range(f_index-1, 0, -1):
                         if not line[i].isdigit() and line[i] != ' ':
                             curVar += line[i]
+                    print("V: ", curVar)
                     # Variable is valid, get value
                     value : str = ""
                     for i in range(f_index+6, len(line)-1): # Minimum offset of 6
                         if line[i].isdigit():
                             value += line[i]
-                    if not var_type:
-                        variables[curVar] = int(value) # Convert to appropiate type!
-                    else:
+                    if var_type == 0:
+                        variables[curVar] = int(value)
+                    elif var_type == 1:
                         variables[curVar] = float(value) 
+                    elif var_type == 2:
+                        variables[curVar] = value
             # === Commands ===
             index = line.find("put") # Get content to print
             if not index == -1:
@@ -76,6 +81,17 @@ class Program:
                             output += line[j]
                     #break
                 print(output)
+            index = line.find("wipe")
+            if not index == -1:
+                # Get variable to wipe
+                for i in variables.keys():
+                    if line.find(i):
+                        ...
+                        #print(i)
+            index = line.find("for")
+            if not index == -1:
+                # Obtain container OR range
+                ...
             # === Functions ===
             if line.find("_FN") != 1:
                 fn_name : str = ""
@@ -86,6 +102,7 @@ class Program:
                 functions[fn_name] = line.find("_FN") # Change, get lines in a global manner
 
         print(variables)
+        #print(functions)
         return True
 
 def main() -> None:

@@ -5,7 +5,7 @@
 #import numpy as np
 
 # Lexer
-assignmentTypes = ["i32", "f32", "str"]
+assignmentTypes = ["int", "flt", "str"]
 # Molecule
 functions = {} # function name | function line
     # Allows for function overriding
@@ -52,11 +52,12 @@ class Program:
                 f_index = line.find(":")
                 if not f_index == -1:
                     # Get variable
+                    print("Line: ", line)
                     curVar : str = ""
                     for i in range(f_index-1, 0, -1):
                         if not line[i].isdigit() and line[i] != ' ':
                             curVar += line[i]
-                    print("V: ", curVar)
+                    #print("V: ", curVar)
                     # Variable is valid, get value
                     value : str = ""
                     for i in range(f_index+6, len(line)-1): # Minimum offset of 6
@@ -80,7 +81,7 @@ class Program:
                         for j in range(i+1, len(line)-2):
                             output += line[j]
                     #break
-                print(output)
+                #print(output)
             index = line.find("wipe")
             if not index == -1:
                 # Get variable to wipe
@@ -101,7 +102,7 @@ class Program:
                     fn_name += line[i]
                 functions[fn_name] = line.find("_FN") # Change, get lines in a global manner
 
-        print(variables)
+        #print(variables)
         #print(functions)
         return True
 

@@ -5,7 +5,7 @@
 #import numpy as np
 
 # Lexer
-assignmentTypes = ["int", "flt", "str"]
+types = ["int", "flt", "str"]
 # Molecule
 functions = {} # function name | function line
     # Allows for function overriding
@@ -22,7 +22,7 @@ class Program:
             self.source = f.readlines()
 
     def type_check(self, line : str, index : int) -> int:
-        # Get match working
+        # Get match working!
         if line[index] == 'i':
             return 0
         elif line[index] == 'f':
@@ -40,15 +40,15 @@ class Program:
         # Lexer
             # === Variables ===
         for line in self.source:
-            line.strip() # Clear ending whitespace
-            # Check through all possible variable assignments
+            line.strip() # Clear starting and ending whitespace
             f_index : int = -1
-            for i in assignmentTypes:
+            print("Line: ", line)
+            for i in types: # Search for datatype | int, flt, str
                 f_index = line.find(i)
-            var_type : int = self.type_check(line, f_index)
             #print("Var: ", var_type)
-            if not f_index == -1:
-                # Search for valid type syntax and variable name
+            if not f_index == -1: # If found valid type, check for correct syntax and assign
+                var_type : int = self.type_check(line, f_index) # Store type for later assignment
+                print("type: ", var_type)
                 f_index = line.find(":")
                 if not f_index == -1:
                     # Get variable

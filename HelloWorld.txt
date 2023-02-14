@@ -1,4 +1,5 @@
 _START {
+    str
     x : int = 5
     y : flt = 10.0
     put x - y
@@ -20,10 +21,10 @@ _START {
         i++
         put i
     }
+
+    add(5, 5)
 }
 
 _FN add(a, b) -> i32 {
     <- a + b
 }
-
-

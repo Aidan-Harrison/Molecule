@@ -10,7 +10,6 @@ types = ["int", "flt", "str"]
 functions = {} # function name | function line
     # Allows for function overriding
 variables = {} # "Variable Name" | <GENERIC>
-
 class Program:
     def __init__(self) -> None:
         self.directory : str = ""
@@ -30,7 +29,10 @@ class Program:
         elif line[index] == 's':
             return 2
 
-    def type_get() -> int:
+    def type_get(self) -> int:
+        ...
+
+    def function_call(self, index : int) -> bool:
         ...
 
     def execute(self) -> bool:
@@ -39,10 +41,11 @@ class Program:
             return False
         # Lexer
             # === Variables ===
+        lineCount : int = 0
         for line in self.source:
             line.strip() # Clear starting and ending whitespace
             f_index : int = -1
-            print("Line: ", line)
+            #print("Line: ", line)
             for i in types: # Search for datatype | int, flt, str
                 f_index = line.find(i)
             #print("Var: ", var_type)
@@ -94,14 +97,24 @@ class Program:
                 # Obtain container OR range
                 ...
             # === Functions ===
-            if line.find("_FN") != 1:
-                fn_name : str = ""
+            if line.find("_FN") != -1:
+                fn_name : str = "" # Make global
                 for i in range(3, len(line)):
                     if line[i] == '(':
                         break
                     fn_name += line[i]
-                functions[fn_name] = line.find("_FN") # Change, get lines in a global manner
-
+                functions[fn_name] = lineCount # Change, get lines in a global manner
+            # === FN Execute ===
+            if line.find("(") != -1 and line.find(")") != -1:
+                if line.find("_FN") == -1:
+                    # Get name, call appropiate function
+                    fn_name : str = ""
+                    for i in range(0, len(line)):
+                        if line[i] == '(':
+                            break
+                        fn_name += line[i]
+                    self.function_call(functions[fn_name])
+            lineCount += 1
         #print(variables)
         #print(functions)
         return True

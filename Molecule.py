@@ -3,6 +3,8 @@
 # 2023
 
 #import numpy as np
+import queue
+from enum import Enum
 
 # Lexer
 types = ["int", "flt", "str"]
@@ -10,11 +12,24 @@ types = ["int", "flt", "str"]
 functions = {} # function name | function line
     # Allows for function overriding
 variables = {} # "Variable Name" | <GENERIC>
+class STATEMENT_CMDS():
+    PUT = 1
+    WIPE = 2
+
 class Program:
-    def __init__(self) -> None:
+    def __init__(self, direct : str = "", debugActive : bool = False) -> None:
         self.directory : str = ""
         self.source = []
-    def build(self, directory : str) -> None:
+        self.enumDef : STATEMENT_CMDS() = STATEMENT_CMDS()
+        self.commands = {} # Line Index | STATEMENT type 
+        self.DEBUG = True
+        self.build(direct, debugActive)
+        self.typePositions = []
+        if not self.lexer():
+            print("FAILED TO COMPILE!")
+    def build(self, directory : str, debugActive : bool) -> None:
+        if not debugActive:
+            self.DEBUG = False
         self.directory = directory
         # Write source and appropiate data
         with open(directory) as f:
@@ -33,26 +48,26 @@ class Program:
         ...
 
     def function_call(self, index : int) -> bool:
-        ...
+        print(self.source[index])
 
-    def execute(self) -> bool:
+    def lexer(self) -> bool:
         if self.source[0].find("_START") == -1:
             print("'_START' not found, please add")
             return False
-        # Lexer
-            # === Variables ===
         lineCount : int = 0
         for line in self.source:
-            line.strip() # Clear starting and ending whitespace
             f_index : int = -1
-            #print("Line: ", line)
-            for i in types: # Search for datatype | int, flt, str
+            line.strip() # Clear starting and ending whitespace
+            self.source[lineCount] = line # Rewrite to source
+            # === Variables ===
+            for i in types: # Search for datatype | int, flt, str, etc.
                 f_index = line.find(i)
-            #print("Var: ", var_type)
-            if not f_index == -1: # If found valid type, check for correct syntax and assign
+                if f_index != -1: # if valid type found, store position for check
+                    typePositions.append(f_index)
+            if not f_index == -1:
                 var_type : int = self.type_check(line, f_index) # Store type for later assignment
-                print("type: ", var_type)
-                f_index = line.find(":")
+                #print("type: ", var_type)
+                f_index = line.find(':')
                 if not f_index == -1:
                     # Get variable
                     print("Line: ", line)
@@ -73,18 +88,16 @@ class Program:
                     elif var_type == 2:
                         variables[curVar] = value
             # === Commands ===
-            index = line.find("put") # Get content to print
+            index = line.find("put") # Interpreted print statement
             if not index == -1:
-                #print('FOUND AT ', index, " on line | ", line)
                 output : str = ""
                 # Check if string, if not, check against base values, then variables
-                #print("End: ", line[len(line)-2])
                 for i in range(index+3, len(line)):
                     if line[i] == '"' and line[len(line)-2] == '"':
                         for j in range(i+1, len(line)-2):
                             output += line[j]
-                    #break
-                #print(output)
+                print(output)
+                self.commands[lineCount] = self.enumDef.PUT 
             index = line.find("wipe")
             if not index == -1:
                 # Get variable to wipe
@@ -92,10 +105,12 @@ class Program:
                     if line.find(i):
                         ...
                         #print(i)
+                self.commands[lineCount] = self.enumDef.WIPE
             index = line.find("for")
             if not index == -1:
                 # Obtain container OR range
-                ...
+                for i in range(index+4, len(line)):
+                    ...
             # === Functions ===
             if line.find("_FN") != -1:
                 fn_name : str = "" # Make global
@@ -113,20 +128,23 @@ class Program:
                         if line[i] == '(':
                             break
                         fn_name += line[i]
-                    self.function_call(functions[fn_name])
+                    #self.function_call(functions[fn_name]) # Run function
             lineCount += 1
-        #print(variables)
-        #print(functions)
+            
+        # === DEBUG ===
+        print(variables)
+        print(functions)
         return True
 
+    def execute(self) -> bool:
+        # Iterates over stored assets and computes
+        execute_queue : queue = queue.Queue(20) # Max func size of 20
+        for func in functions.values():
+            #execute_queue.append(func)
+            self.function_call(func)
+
 def main() -> None:
-    newProgram : Program = Program()
-    newProgram.build("HelloWorld.txt")
-    newProgram.execute()
-    #if not read(newProgram):
-        #print("!COMPILE ERROR!")
-    #else:
-        #print("COMPILE SUCCESS")
+    newProgram : Program = Program("HelloWorld.txt", True)
 
 if __name__ == "__main__":
     main()

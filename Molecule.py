@@ -63,8 +63,8 @@ class Program:
             for i in types: # Search for datatype | int, flt, str, etc.
                 f_index = line.find(i)
                 if f_index != -1: # if valid type found, store position for check
-                    typePositions.append(f_index)
-            if not f_index == -1:
+                    self.typePositions.append(f_index)
+            for vPos in self.typePositions:
                 var_type : int = self.type_check(line, f_index) # Store type for later assignment
                 #print("type: ", var_type)
                 f_index = line.find(':')
@@ -100,17 +100,24 @@ class Program:
                 self.commands[lineCount] = self.enumDef.PUT 
             index = line.find("wipe")
             if not index == -1:
-                # Get variable to wipe
                 for i in variables.keys():
                     if line.find(i):
-                        ...
-                        #print(i)
+                        variables[i] = None
                 self.commands[lineCount] = self.enumDef.WIPE
             index = line.find("for")
             if not index == -1:
                 # Obtain container OR range
+                counterVal : str = ""
+                t_variable : str = "" # Used for variable storage, optimise
+                    # Only create when needed
                 for i in range(index+4, len(line)):
-                    ...
+                    if line[i].isdigit(): # Easier to seperate to two counters
+                        counterVal += line[i]
+                    else: # Variable check
+                        t_variable += line[i]
+                        for var in variables.keys(): # Optimise, add flag instead of per loop iter!!!!
+                            if t_variable == var:
+                                counterVal = variables[t_variable]
             # === Functions ===
             if line.find("_FN") != -1:
                 fn_name : str = "" # Make global

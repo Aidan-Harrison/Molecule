@@ -4,6 +4,8 @@ _START {
     y : flt = 10.0
     put x - y
 
+    test++
+
     c = x^3
     put c 
 

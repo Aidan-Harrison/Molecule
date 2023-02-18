@@ -118,6 +118,33 @@ class Program:
                         for var in variables.keys(): # Optimise, add flag instead of per loop iter!!!!
                             if t_variable == var:
                                 counterVal = variables[t_variable]
+                loop_range : int = int(counterVal)
+                # Store each process in looop | DO
+                for i in range(0, loop_range):
+                    ...
+            # === OPERATORS ===
+            index = line.find("++")
+            if not index == -1:
+                # Get variable
+                variable : str = ""
+                for i in range(index, 0, -1):
+                    if line[i].isalnum():
+                        variable += line[i]
+                    variable[::-1]
+                variables[variable] += 1
+            index = line.find("+")
+            if not index == -1:
+                # Get variables
+                var_1 : str = ""
+                var_2 : str = ""
+                for i in range(index, 0, -1): # Left
+                    if line[i].isalnum():
+                        var_1 += line[i]
+                var_1[::-1]
+                for j in range(index, len(line)):
+                    if line[j].isalnum():
+                        var_2 += line[j]
+                result = variables[var_1] + variables[var_2]
             # === Functions ===
             if line.find("_FN") != -1:
                 fn_name : str = "" # Make global

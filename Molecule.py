@@ -5,6 +5,9 @@
 #import numpy as np
 import queue
 from enum import Enum
+from typing import TypeVar
+
+T = TypeVar('T') # Remove?
 
 # Lexer
 types = ["int", "flt", "str"]
@@ -20,11 +23,16 @@ class Program:
     def __init__(self, direct : str = "", debugActive : bool = False) -> None:
         self.directory : str = ""
         self.source = []
+        self.start_index : int = 0
         self.enumDef : STATEMENT_CMDS() = STATEMENT_CMDS()
         self.commands = {} # Line Index | STATEMENT type 
         self.DEBUG = True
         self.build(direct, debugActive)
         self.typePositions = []
+
+        # New
+        self.variable_types = {} # POSITION | Type as str
+
         if not self.lexer():
             print("FAILED TO COMPILE!")
     def build(self, directory : str, debugActive : bool) -> None:
@@ -50,43 +58,89 @@ class Program:
     def function_call(self, index : int) -> bool:
         print(self.source[index])
 
+    def variable_compile(self) -> bool:
+        if self.source[0].find("_VAR") == -1:
+            return False
+        for line in range(1, len(self.source)):
+            f_index : int = -1
+            self.source[line].strip() # Clear whitespace
+            if self.source[line] == "}": # End of _VAR scope
+                break
+            for i in types: # Search for datatype | int, flt, str, etc.
+                f_index = self.source[line].find(i) # Cheaper to do instead of two function calls
+                if f_index != -1: # if valid type found, store position for check
+                    #self.typePositions.append(f_index) 
+                    self.variable_types[f_index] = i
+            if self.source[line].find(":") == -1:
+                print("Invalid syntax, used datatype without variable specifier") # Convert to format print
+                return False
+            # Get variable name and value
+            current_var_name : str = ""
+            current_value : str = ""
+
+            print("INDEX test: ", self.source[3][4])
+
+            for i in range(f_index, 0, -1):
+                if not self.source[line][i].isdigit() and self.source[line][i] != ' ':
+                    print(self.source[line][i])
+                    current_var_name += self.source[line][i]
+            for i in range(f_index+5, len(self.source[line])):
+                current_value += self.source[line][i]
+            print("VARIABLE NAME: ", current_var_name)
+            print("VALUE: ", current_value)
+            for i in self.variable_types.values():
+                # Get match statement working!
+                if i == "int":
+                    variables[current_var_name[::-1]] = int(current_value)
+                elif i == "flt":
+                    variables[current_var_name[::-1]] = float(current_value)
+                else:
+                    variables[current_var_name[::-1]] = current_value
+            # ===========
+            #for vPos in self.typePositions:
+                #var_type : int = self.type_check(line, f_index) # Store type for later assignment
+                #print("type: ", var_type)
+                #f_index = line.find(':') # Variable identifier
+                #if f_index != -1:
+                #    print("Line: ", line)
+                #    curVar : str = ""
+                #    for i in range(f_index-1, 0, -1):
+                #        if not line[i].isdigit() and line[i] != ' ':
+                #            curVar += line[i]
+                #    if curVar == "":
+                #        continue
+                #    # Variable is valid, get value
+                #    value : str = ""
+                #    for i in range(f_index+5, len(line)-1): # Minimum offset of 5
+                #        if line[i].isdigit():
+                #            value += line[i]
+                #    if var_type == 0:
+                #        variables[curVar] = int(value)
+                #    elif var_type == 1:
+                #        variables[curVar] = float(value) 
+                #    elif var_type == 2:
+                #        variables[curVar] = value
+                #    print("V: ", curVar)
+        return True
+
     def lexer(self) -> bool:
-        if self.source[0].find("_START") == -1:
+        for i in range(0, len(self.source)):
+            self.start_index = self.source[i].find("_START")
+            if self.start_index != -1:
+                break
+        if self.start_index == -1:
             print("'_START' not found, please add")
             return False
+        if not self.variable_compile():
+            print("No variable storage found")
+        else:
+            print("Variable storage found")
+        print(variables)
         lineCount : int = 0
         for line in self.source:
             f_index : int = -1
             line.strip() # Clear starting and ending whitespace
             self.source[lineCount] = line # Rewrite to source
-            # === Variables ===
-            for i in types: # Search for datatype | int, flt, str, etc.
-                f_index = line.find(i)
-                if f_index != -1: # if valid type found, store position for check
-                    self.typePositions.append(f_index)
-            for vPos in self.typePositions:
-                var_type : int = self.type_check(line, f_index) # Store type for later assignment
-                #print("type: ", var_type)
-                f_index = line.find(':')
-                if not f_index == -1:
-                    # Get variable
-                    print("Line: ", line)
-                    curVar : str = ""
-                    for i in range(f_index-1, 0, -1):
-                        if not line[i].isdigit() and line[i] != ' ':
-                            curVar += line[i]
-                    #print("V: ", curVar)
-                    # Variable is valid, get value
-                    value : str = ""
-                    for i in range(f_index+6, len(line)-1): # Minimum offset of 6
-                        if line[i].isdigit():
-                            value += line[i]
-                    if var_type == 0:
-                        variables[curVar] = int(value)
-                    elif var_type == 1:
-                        variables[curVar] = float(value) 
-                    elif var_type == 2:
-                        variables[curVar] = value
             # === Commands ===
             index = line.find("put") # Interpreted print statement
             if not index == -1:
@@ -130,8 +184,7 @@ class Program:
                 for i in range(index, 0, -1):
                     if line[i].isalnum():
                         variable += line[i]
-                    variable[::-1]
-                variables[variable] += 1
+                variables[variable[::-1]] += 1
             index = line.find("+")
             if not index == -1:
                 # Get variables
@@ -145,6 +198,9 @@ class Program:
                     if line[j].isalnum():
                         var_2 += line[j]
                 result = variables[var_1] + variables[var_2]
+                for cmd in self.commands.keys():
+                    if lineCount == cmd:
+                        print(result)
             # === Functions ===
             if line.find("_FN") != -1:
                 fn_name : str = "" # Make global

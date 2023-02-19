@@ -1,25 +1,30 @@
-_START {
-    str
+_VAR {
     x : int = 5
+    i : int = 0
     y : flt = 10.0
+    test : int = 1
+
+    msg : str = "Hello, world"
+}
+
+_START {
+
     put x - y
 
     test++
+
+    put 5 + 5
 
     c = x^3
     put c 
 
     put "Hello, world"
-    put "Test"
-
-    msg : str = "Hello, world"
     put msg
 
     wipe msg
     msg = "Other"
     put msg
 
-    i : int = 0
     for 15 {
         i++
         put i

@@ -63,31 +63,26 @@ class Program:
             return False
         for line in range(1, len(self.source)):
             f_index : int = -1
-            self.source[line].strip() # Clear whitespace
+            self.source[line] = self.source[line].strip() # Clear whitespace
             if self.source[line] == "}": # End of _VAR scope
                 break
             for i in types: # Search for datatype | int, flt, str, etc.
                 f_index = self.source[line].find(i) # Cheaper to do instead of two function calls
                 if f_index != -1: # if valid type found, store position for check
-                    #self.typePositions.append(f_index) 
                     self.variable_types[f_index] = i
-            if self.source[line].find(":") == -1:
+            f_index = self.source[line].find(":")
+            if f_index == -1:
                 print("Invalid syntax, used datatype without variable specifier") # Convert to format print
                 return False
             # Get variable name and value
             current_var_name : str = ""
             current_value : str = ""
-
-            print("INDEX test: ", self.source[3][4])
-
-            for i in range(f_index, 0, -1):
+            for i in range(f_index-1, -1, -1): # Get name
                 if not self.source[line][i].isdigit() and self.source[line][i] != ' ':
-                    print(self.source[line][i])
                     current_var_name += self.source[line][i]
-            for i in range(f_index+5, len(self.source[line])):
-                current_value += self.source[line][i]
-            print("VARIABLE NAME: ", current_var_name)
-            print("VALUE: ", current_value)
+            for i in range(f_index+5, len(self.source[line])): # Get value
+                if self.source[line][i] != '=':
+                    current_value += self.source[line][i]
             for i in self.variable_types.values():
                 # Get match statement working!
                 if i == "int":
@@ -96,33 +91,40 @@ class Program:
                     variables[current_var_name[::-1]] = float(current_value)
                 else:
                     variables[current_var_name[::-1]] = current_value
-            # ===========
-            #for vPos in self.typePositions:
-                #var_type : int = self.type_check(line, f_index) # Store type for later assignment
-                #print("type: ", var_type)
-                #f_index = line.find(':') # Variable identifier
-                #if f_index != -1:
-                #    print("Line: ", line)
-                #    curVar : str = ""
-                #    for i in range(f_index-1, 0, -1):
-                #        if not line[i].isdigit() and line[i] != ' ':
-                #            curVar += line[i]
-                #    if curVar == "":
-                #        continue
-                #    # Variable is valid, get value
-                #    value : str = ""
-                #    for i in range(f_index+5, len(line)-1): # Minimum offset of 5
-                #        if line[i].isdigit():
-                #            value += line[i]
-                #    if var_type == 0:
-                #        variables[curVar] = int(value)
-                #    elif var_type == 1:
-                #        variables[curVar] = float(value) 
-                #    elif var_type == 2:
-                #        variables[curVar] = value
-                #    print("V: ", curVar)
         return True
 
+    def operator_calc(self, cur_line : str, index : int, op_code : int) -> int: # Return GENERIC!
+        # Get match working
+        var_1 : str = ""
+        var_2 : str = ""
+        foundVariables : bool = False
+        for var in variables: # Check for variables
+            position : int = cur_line.find(var)
+            if position != -1 and position < index:
+                var_1 = var
+            elif position != -1 and position > index:
+                var_2 = var
+            if var_1 != "" and var_2 != "":
+                foundVariables = True
+                break
+        if not foundVariables: 
+            for j in range(0, 100):
+                position : int = cur_line.find(str(j))
+                if position != -1 and position < index:
+                    var_1 = var
+                elif position != -1 and position > index:
+                    var_2 = var
+                if var_1 != "" and var_2 != "":
+                    break
+        # Get result | Get match statements working
+        if not op_code: # PLUS +
+            if foundVariables:
+                return variables[var_1] + variables[var_2]
+        elif op_code: # MINUS -
+            if foundVariables:
+                return variables[var_1] - variables[var_2]
+        return 0
+        
     def lexer(self) -> bool:
         for i in range(0, len(self.source)):
             self.start_index = self.source[i].find("_START")
@@ -141,8 +143,11 @@ class Program:
             f_index : int = -1
             line.strip() # Clear starting and ending whitespace
             self.source[lineCount] = line # Rewrite to source
+            # CHECK FOR COMMENT
+            if line.find("//") != -1:
+                continue
             # === Commands ===
-            index = line.find("put") # Interpreted print statement
+            index = line.find("put") # Interpreted print statement | Do branches -> raw val, variable, operator
             if not index == -1:
                 output : str = ""
                 # Check if string, if not, check against base values, then variables
@@ -177,27 +182,37 @@ class Program:
                 for i in range(0, loop_range):
                     ...
             # === OPERATORS ===
+            # Scan for operators: +, -, /, *, ++, --, =
+            if line.find("+") != -1: print(self.operator_calc(line, line.find("+"), 0)) # Optimise!
+            elif line.find("-") != -1: self.operator_calc(line, line.find("-"), 1)
+            
+
             index = line.find("++")
             if not index == -1:
-                # Get variable
                 variable : str = ""
                 for i in range(index, 0, -1):
                     if line[i].isalnum():
                         variable += line[i]
                 variables[variable[::-1]] += 1
             index = line.find("+")
-            if not index == -1:
+            if not index == -1 and line.find("++") == -1:
                 # Get variables
                 var_1 : str = ""
                 var_2 : str = ""
+                isValue : bool = False
+                result = 0
                 for i in range(index, 0, -1): # Left
-                    if line[i].isalnum():
+                    if line[i] != ' ' and line[i].isdigit(): # Value check
+                        isValue = True
                         var_1 += line[i]
-                var_1[::-1]
                 for j in range(index, len(line)):
-                    if line[j].isalnum():
+                    if line[j] != ' ' and line[j].isdigit(): # Value check
+                        isValue = True
                         var_2 += line[j]
-                result = variables[var_1] + variables[var_2]
+                if isValue:
+                    result = int(var_1[::-1]) + int(var_2)
+                else:
+                    result = variables[var_1[::-1]] + variables[var_2]
                 for cmd in self.commands.keys():
                     if lineCount == cmd:
                         print(result)

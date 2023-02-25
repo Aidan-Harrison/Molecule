@@ -2,19 +2,17 @@
 # Aid Harrison
 # 2023
 # Python 3.11.1
+# Verison 0.1 (Alpha release)
 
-#import numpy as np
 import queue
 import time
 from enum import Enum
-from typing import TypeVar
+#from typing import TypeVar
 
-T = TypeVar('T') # Remove?
+#T = TypeVar('T') # Remove?
 
-# Molecule
 functions = {} # function name | function line
     # Allows for function overriding
-variables = {} # "Variable Name" | <GENERIC>
 class STATEMENT_CMDS():
     PUT = 1
     WIPE = 2
@@ -28,8 +26,9 @@ class Program:
         self.enumDef : STATEMENT_CMDS() = STATEMENT_CMDS()
         self.commands = {} # Line Index | STATEMENT type 
         self.DEBUG = debugActive
+        self.variables = {}
         self.variable_types = {} # POSITION | Type as str
-        self.operators = ['+', '-', '/', '*', '++', '--', '->', '==', '+=', '-=', '/=', '*=']
+        self.operators = ['+', '-', '/', '*', '++', '--', '==', '+=', '-=', '/=', '*=', '->', '<-']
         self.build(direct)
         
         if not self.lexer():
@@ -79,19 +78,29 @@ class Program:
             for i in self.variable_types.values():
                 match i:
                     case "int":
-                        variables[current_var_name[::-1]] = int(current_value)
+                        self.variables[current_var_name[::-1]] = int(current_value)
                     case "flt":
-                        variables[current_var_name[::-1]] = float(current_value)
+                        self.variables[current_var_name[::-1]] = float(current_value)
                     case _:
-                        variables[current_var_name[::-1]] = current_value
+                        self.variables[current_var_name[::-1]] = current_value
         return True
 
     def operator_calc(self, cur_line : str, index : int, op_code : int) -> int: # Return GENERIC!
-        #print("OPERATOR LINE: ", cur_line)
+        # Check complex operators (Single operand)
+        if op_code > 3:
+            var : str = ""
+            for i in range(index, 0, -1): 
+                if cur_line[i].isalnum():
+                    var += cur_line[i]
+            match op_code:
+                case 4: self.variables[var[::-1]] += 1 # ++
+                case 5: self.variables[var[::-1]] -= 1 # --
+            return -1
+        # Standard operators (Two operands)
         var_1 : str = ""
         var_2 : str = ""
         foundVariables : bool = False
-        for var in variables: # Check for variables
+        for var in self.variables: # Check for variables
             position : int = cur_line.find(var)
             if position != -1 and position < index: # Left side
                 var_1 = var
@@ -111,16 +120,16 @@ class Program:
                     break
         match op_code:
             case 0:
-                if foundVariables: return variables[var_1] + variables[var_2]
+                if foundVariables: return self.variables[var_1] + self.variables[var_2]
                 else: return var_1 + var_2
             case 1:
-                if foundVariables: return variables[var_1] - variables[var_2]
+                if foundVariables: return self.variables[var_1] - self.variables[var_2]
                 else: return var_1 - var_2
             case 2:
-                if foundVariables: return variables[var_1] / variables[var_2]
+                if foundVariables: return self.variables[var_1] / self.variables[var_2]
                 else: return var_1 / var_2
             case 3:
-                if foundVariables: return variables[var_1] * variables[var_2]
+                if foundVariables: return self.variables[var_1] * self.variables[var_2]
                 else: return var_1 * var_2
         return 0
         
@@ -138,31 +147,31 @@ class Program:
             print("Variable storage found")
         lineCount : int = 0
         for line in self.source:
+            is_print_line : bool = False # Used for printing anything post "put"
             f_index : int = -1
             line.strip() # Clear starting and ending whitespace
             self.source[lineCount] = line # Rewrite to source
-            # CHECK FOR COMMENT
-            if line.find("//") != -1:
+            if line.find("//") != -1: # COMMENT CHECK
                 continue
-            # === Commands ===
-            index = line.find("put") # Interpreted print statement | Do branches -> raw val, variable, operator
-            if not index == -1:
+            # ================== COMMANDS ==================
+            index = line.find("put")
+            if index != -1: 
+                is_print_line = True
                 output : str = ""
-                # Check if string, if not, check against base values, then variables
                 for i in range(index+3, len(line)):
                     if line[i] == '"' and line[len(line)-2] == '"':
                         for j in range(i+1, len(line)-2):
                             output += line[j]
-                print(output)
+                # print(output)
                 self.commands[lineCount] = self.enumDef.PUT 
             index = line.find("wipe")
-            if not index == -1:
-                for i in variables.keys():
+            if index != -1:
+                for i in self.variables.keys():
                     if line.find(i):
-                        variables[i] = None
+                        self.variables[i] = None
                 self.commands[lineCount] = self.enumDef.WIPE
             index = line.find("for")
-            if not index == -1:
+            if index != -1:
                 # Obtain container OR range
                 counterVal : str = ""
                 t_variable : str = "" # Used for variable storage, optimise
@@ -172,46 +181,54 @@ class Program:
                         counterVal += line[i]
                     else: # Variable check
                         t_variable += line[i]
-                        for var in variables.keys(): # Optimise, add flag instead of per loop iter!!!!
+                        for var in self.variables.keys(): # Optimise, add flag instead of per loop iter!!!!
                             if t_variable == var:
-                                counterVal = variables[t_variable]
+                                counterVal = self.variables[t_variable]
                 loop_range : int = int(counterVal)
                 # Store each process in loop | DO
                 for i in range(0, loop_range):
                     ...
-            # === OPERATORS ===
-            # Scan for operators: +, -, /, *, ++, --, =
-            for i in range(0, len(self.operators)): # Optimise both loop and body! | Prevent complex op search
+            index = line.find("if")
+            if index != -1:
+                ...
+            # ================== OPERATORS ==================
+            # Scan for operators: +, -, /, *, ++, --, etc.
+            for i in range(0, len(self.operators)):
                 index : int = line.find(self.operators[i])
                 if index != -1: 
                     op_code : int = -1
                     match line[index]:
                         case '+':
                             match line[index+1]:
-                                case '+': op_code = 4
-                                case '=': op_code = 8
+                                case '+': 
+                                    op_code = 4
+                                    break
+                                case '=': 
+                                    op_code = 8 
+                                    break
                             op_code = 0
                         case '-':
                             match line[index+1]: # Account for other possible operators
-                                case '>': op_code = 6
-                                case '=': op_code = 9
+                                case '>': 
+                                    op_code = 11
+                                    break
+                                case '=': 
+                                    op_code = 8
+                                    break
                             op_code = 1
                         case '/':
-                            # DO
+                            match line[index+1]:
+                                case '=':
+                                    op_code = 9
+                                    break
                             op_code = 2
                         case '*':
                             # DO
                             op_code = 3
-                    self.operator_calc(line, index, op_code)
-
-            index = line.find("++") # MOVE TO 'operator_calc'
-            if not index == -1:
-                variable : str = ""
-                for i in range(index, 0, -1):
-                    if line[i].isalnum():
-                        variable += line[i]
-                variables[variable[::-1]] += 1
-            # === Functions ===
+                    result = self.operator_calc(line, index, op_code)
+                    if is_print_line:
+                        print(result)
+            # ================== FUNCTIONS ==================
             if line.find("_FN") != -1:
                 fn_name : str = "" # Make global
                 for i in range(3, len(line)):
@@ -219,7 +236,7 @@ class Program:
                         break
                     fn_name += line[i]
                 functions[fn_name] = lineCount # Change, get lines in a global manner
-            # === FN Execute ===
+            # ================== FN EXECUTE ==================
             if line.find("(") != -1 and line.find(")") != -1:
                 if line.find("_FN") == -1:
                     # Get name, call appropiate function
@@ -230,7 +247,6 @@ class Program:
                         fn_name += line[i]
                     #self.function_call(functions[fn_name]) # Run function
             lineCount += 1
-            
         # === DEBUG ===
         #print(variables)
         #print(functions)

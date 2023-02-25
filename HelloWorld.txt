@@ -11,7 +11,7 @@ _START {
 
     put x - y
 
-    // test++
+    // put test++
 
     put x + y
 
@@ -26,7 +26,7 @@ _START {
     put msg
 
     for 15 {
-        // i++
+        i++
         put i
     }
 
@@ -36,3 +36,4 @@ _START {
 //_FN add(a, b) -> i32 {
     //<- a + b
 //}
+

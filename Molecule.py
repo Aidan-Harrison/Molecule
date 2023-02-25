@@ -1,16 +1,16 @@
-# Mini ASM
+# Molecule
 # Aid Harrison
 # 2023
+# Python 3.11.1
 
 #import numpy as np
 import queue
+import time
 from enum import Enum
 from typing import TypeVar
 
 T = TypeVar('T') # Remove?
 
-# Lexer
-types = ["int", "flt", "str"]
 # Molecule
 functions = {} # function name | function line
     # Allows for function overriding
@@ -21,39 +21,32 @@ class STATEMENT_CMDS():
 
 class Program:
     def __init__(self, direct : str = "", debugActive : bool = False) -> None:
-        self.directory : str = ""
+        self.directory : str = direct
         self.source = []
+        self.types = ["int", "flt", "str"]
         self.start_index : int = 0
         self.enumDef : STATEMENT_CMDS() = STATEMENT_CMDS()
         self.commands = {} # Line Index | STATEMENT type 
-        self.DEBUG = True
-        self.build(direct, debugActive)
-        self.typePositions = []
-
-        # New
+        self.DEBUG = debugActive
         self.variable_types = {} # POSITION | Type as str
-
+        self.operators = ['+', '-', '/', '*', '++', '--', '->', '==', '+=', '-=', '/=', '*=']
+        self.build(direct)
+        
         if not self.lexer():
             print("FAILED TO COMPILE!")
-    def build(self, directory : str, debugActive : bool) -> None:
-        if not debugActive:
-            self.DEBUG = False
-        self.directory = directory
-        # Write source and appropiate data
-        with open(directory) as f:
+    
+    def build(self, directory : str) -> None:
+        with open(directory) as f: # Write source
             self.source = f.readlines()
 
     def type_check(self, line : str, index : int) -> int:
-        # Get match working!
-        if line[index] == 'i':
-            return 0
-        elif line[index] == 'f':
-            return 1
-        elif line[index] == 's':
-            return 2
-
-    def type_get(self) -> int:
-        ...
+        match line[index]:
+            case 'i':
+                return 0
+            case 'f':
+                return 1
+            case 's':
+                return 2
 
     def function_call(self, index : int) -> bool:
         print(self.source[index])
@@ -66,7 +59,7 @@ class Program:
             self.source[line] = self.source[line].strip() # Clear whitespace
             if self.source[line] == "}": # End of _VAR scope
                 break
-            for i in types: # Search for datatype | int, flt, str, etc.
+            for i in self.types: # Search for datatype | int, flt, str, etc.
                 f_index = self.source[line].find(i) # Cheaper to do instead of two function calls
                 if f_index != -1: # if valid type found, store position for check
                     self.variable_types[f_index] = i
@@ -84,27 +77,27 @@ class Program:
                 if self.source[line][i] != '=':
                     current_value += self.source[line][i]
             for i in self.variable_types.values():
-                # Get match statement working!
-                if i == "int":
-                    variables[current_var_name[::-1]] = int(current_value)
-                elif i == "flt":
-                    variables[current_var_name[::-1]] = float(current_value)
-                else:
-                    variables[current_var_name[::-1]] = current_value
+                match i:
+                    case "int":
+                        variables[current_var_name[::-1]] = int(current_value)
+                    case "flt":
+                        variables[current_var_name[::-1]] = float(current_value)
+                    case _:
+                        variables[current_var_name[::-1]] = current_value
         return True
 
     def operator_calc(self, cur_line : str, index : int, op_code : int) -> int: # Return GENERIC!
-        # Get match working
+        #print("OPERATOR LINE: ", cur_line)
         var_1 : str = ""
         var_2 : str = ""
         foundVariables : bool = False
         for var in variables: # Check for variables
             position : int = cur_line.find(var)
-            if position != -1 and position < index:
+            if position != -1 and position < index: # Left side
                 var_1 = var
-            elif position != -1 and position > index:
+            elif position != -1 and position > index: # Right side
                 var_2 = var
-            if var_1 != "" and var_2 != "":
+            if var_1 != "" and var_2 != "": # Change to allow variable + raw value!
                 foundVariables = True
                 break
         if not foundVariables: 
@@ -116,13 +109,19 @@ class Program:
                     var_2 = var
                 if var_1 != "" and var_2 != "":
                     break
-        # Get result | Get match statements working
-        if not op_code: # PLUS +
-            if foundVariables:
-                return variables[var_1] + variables[var_2]
-        elif op_code: # MINUS -
-            if foundVariables:
-                return variables[var_1] - variables[var_2]
+        match op_code:
+            case 0:
+                if foundVariables: return variables[var_1] + variables[var_2]
+                else: return var_1 + var_2
+            case 1:
+                if foundVariables: return variables[var_1] - variables[var_2]
+                else: return var_1 - var_2
+            case 2:
+                if foundVariables: return variables[var_1] / variables[var_2]
+                else: return var_1 / var_2
+            case 3:
+                if foundVariables: return variables[var_1] * variables[var_2]
+                else: return var_1 * var_2
         return 0
         
     def lexer(self) -> bool:
@@ -137,7 +136,6 @@ class Program:
             print("No variable storage found")
         else:
             print("Variable storage found")
-        print(variables)
         lineCount : int = 0
         for line in self.source:
             f_index : int = -1
@@ -178,44 +176,41 @@ class Program:
                             if t_variable == var:
                                 counterVal = variables[t_variable]
                 loop_range : int = int(counterVal)
-                # Store each process in looop | DO
+                # Store each process in loop | DO
                 for i in range(0, loop_range):
                     ...
             # === OPERATORS ===
             # Scan for operators: +, -, /, *, ++, --, =
-            if line.find("+") != -1: print(self.operator_calc(line, line.find("+"), 0)) # Optimise!
-            elif line.find("-") != -1: self.operator_calc(line, line.find("-"), 1)
-            
+            for i in range(0, len(self.operators)): # Optimise both loop and body! | Prevent complex op search
+                index : int = line.find(self.operators[i])
+                if index != -1: 
+                    op_code : int = -1
+                    match line[index]:
+                        case '+':
+                            match line[index+1]:
+                                case '+': op_code = 4
+                                case '=': op_code = 8
+                            op_code = 0
+                        case '-':
+                            match line[index+1]: # Account for other possible operators
+                                case '>': op_code = 6
+                                case '=': op_code = 9
+                            op_code = 1
+                        case '/':
+                            # DO
+                            op_code = 2
+                        case '*':
+                            # DO
+                            op_code = 3
+                    self.operator_calc(line, index, op_code)
 
-            index = line.find("++")
+            index = line.find("++") # MOVE TO 'operator_calc'
             if not index == -1:
                 variable : str = ""
                 for i in range(index, 0, -1):
                     if line[i].isalnum():
                         variable += line[i]
                 variables[variable[::-1]] += 1
-            index = line.find("+")
-            if not index == -1 and line.find("++") == -1:
-                # Get variables
-                var_1 : str = ""
-                var_2 : str = ""
-                isValue : bool = False
-                result = 0
-                for i in range(index, 0, -1): # Left
-                    if line[i] != ' ' and line[i].isdigit(): # Value check
-                        isValue = True
-                        var_1 += line[i]
-                for j in range(index, len(line)):
-                    if line[j] != ' ' and line[j].isdigit(): # Value check
-                        isValue = True
-                        var_2 += line[j]
-                if isValue:
-                    result = int(var_1[::-1]) + int(var_2)
-                else:
-                    result = variables[var_1[::-1]] + variables[var_2]
-                for cmd in self.commands.keys():
-                    if lineCount == cmd:
-                        print(result)
             # === Functions ===
             if line.find("_FN") != -1:
                 fn_name : str = "" # Make global
@@ -237,8 +232,8 @@ class Program:
             lineCount += 1
             
         # === DEBUG ===
-        print(variables)
-        print(functions)
+        #print(variables)
+        #print(functions)
         return True
 
     def execute(self) -> bool:
@@ -249,7 +244,9 @@ class Program:
             self.function_call(func)
 
 def main() -> None:
+    start = time.perf_counter()
     newProgram : Program = Program("HelloWorld.txt", True)
+    print(f"Time {time.perf_counter() - start} seconds")
 
 if __name__ == "__main__":
     main()

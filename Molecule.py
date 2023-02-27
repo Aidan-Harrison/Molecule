@@ -17,6 +17,11 @@ class STATEMENT_CMDS():
     PUT = 1
     WIPE = 2
 
+class VAR_STORAGE:
+    def __init__(self) -> None:
+        self.name : str = ""
+        self.value 
+
 class Program:
     def __init__(self, direct : str = "", debugActive : bool = False) -> None:
         self.directory : str = direct
@@ -27,7 +32,7 @@ class Program:
         self.commands = {} # Line Index | STATEMENT type 
         self.DEBUG = debugActive
         self.variables = {}
-        self.variable_types = {} # POSITION | Type as str
+        self.lastType : str = "" # Used for variable compile
         self.operators = ['+', '-', '/', '*', '++', '--', '==', '+=', '-=', '/=', '*=', '->', '<-']
         self.build(direct)
         
@@ -51,42 +56,39 @@ class Program:
         print(self.source[index])
 
     def variable_compile(self) -> bool:
+        #VARIABLE_STORAGE : VAR_STORAGE = VAR_STORAGE
         if self.source[0].find("_VAR") == -1:
             return False
         for line in range(1, len(self.source)):
             f_index : int = -1
             self.source[line] = self.source[line].strip() # Clear whitespace
-            if self.source[line] == "}": # End of _VAR scope
+            if self.source[line] == "": # Ideally remove!
+                continue
+            elif self.source[line] == "}": # End of _VAR scope
                 break
             for i in self.types: # Search for datatype | int, flt, str, etc.
-                f_index = self.source[line].find(i) # Cheaper to do instead of two function calls
+                f_index = self.source[line].find(i)
                 if f_index != -1: # if valid type found, store position for check
-                    self.variable_types[f_index] = i
+                    self.lastType = i
             f_index = self.source[line].find(":")
             if f_index == -1:
-                print("Invalid syntax, used datatype without variable specifier") # Convert to format print
+                print("Invalid syntax, used datatype without variable specifier | on line: ", line) # Convert to format print
                 return False
-            # Get variable name and value
             current_var_name : str = ""
             current_value : str = ""
             for i in range(f_index-1, -1, -1): # Get name
                 if not self.source[line][i].isdigit() and self.source[line][i] != ' ':
                     current_var_name += self.source[line][i]
             for i in range(f_index+5, len(self.source[line])): # Get value
-                if self.source[line][i] != '=':
+                if self.source[line][i] != '=' and self.source[line][i] != '"' and self.source[line][i] != ' ':
                     current_value += self.source[line][i]
-            for i in self.variable_types.values():
-                match i:
-                    case "int":
-                        self.variables[current_var_name[::-1]] = int(current_value)
-                    case "flt":
-                        self.variables[current_var_name[::-1]] = float(current_value)
-                    case _:
-                        self.variables[current_var_name[::-1]] = current_value
+            match self.lastType:
+                case "int": self.variables[current_var_name[::-1]] = int(current_value)
+                case "flt": self.variables[current_var_name[::-1]] = float(current_value)
+                case "str": self.variables[current_var_name[::-1]] = current_value
         return True
 
-    def operator_calc(self, cur_line : str, index : int, op_code : int) -> int: # Return GENERIC!
-        # Check complex operators (Single operand)
+    def operator_calc(self, cur_line : str, index : int, op_code : int): 
         if op_code > 3:
             var : str = ""
             for i in range(index, 0, -1): 
@@ -141,10 +143,8 @@ class Program:
         if self.start_index == -1:
             print("'_START' not found, please add")
             return False
-        if not self.variable_compile():
+        if not self.variable_compile() and self.DEBUG:
             print("No variable storage found")
-        else:
-            print("Variable storage found")
         lineCount : int = 0
         for line in self.source:
             is_print_line : bool = False # Used for printing anything post "put"
@@ -214,6 +214,10 @@ class Program:
                                     break
                                 case '=': 
                                     op_code = 8
+                                    break
+                            match line[index-1]:
+                                case '<':
+                                    op_code = 12
                                     break
                             op_code = 1
                         case '/':

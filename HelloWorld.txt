@@ -33,7 +33,7 @@ _START {
     add(5, 5)
 }
 
-//_FN add(a, b) -> i32 {
-    //<- a + b
-//}
+_FN add(a, b) -> i32 {
+    <- a + b
+}
 

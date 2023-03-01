@@ -8,32 +8,32 @@ _VAR {
 }
 
 _START {
-
+    put 5 + 5
     put x - y
 
-    // put test++
+    put test
+    put test++
 
     put x + y
 
-    c = x^3
-    put c 
+    // c = x^3
+    // put c 
 
     put "Hello, world"
     put msg
 
-    wipe msg
-    msg = "Other"
-    put msg
+    // wipe msg
+    // msg = "Other"
+    // put msg
 
-    for 15 {
-        i++
-        put i
-    }
+    // for 15 {
+        // i++
+        // put i
+    // }
 
-    add(5, 5)
+    // add(5, 5)
 }
 
-_FN add(a, b) -> i32 {
-    <- a + b
-}
-
+// _FN add(a, b) -> i32 {
+    // <- a + b
+// }

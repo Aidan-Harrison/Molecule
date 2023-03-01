@@ -1,3 +1,4 @@
 {
-    "zenMode.hideStatusBar": true
+    "zenMode.hideStatusBar": true,
+    "python.analysis.typeCheckingMode": "off"
 }

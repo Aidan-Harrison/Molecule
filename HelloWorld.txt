@@ -8,13 +8,12 @@ _VAR {
 }
 
 _START {
-    put 5 + 5
-    put x - y
+    // put 5 + 5
+    // put x - y
 
-    put test
-    put test++
+    // put test + 5
 
-    put x + y
+    // put x + y
 
     // c = x^3
     // put c 
@@ -31,9 +30,9 @@ _START {
         // put i
     // }
 
-    // add(5, 5)
+    add(5, 5)
 }
 
-// _FN add(a, b) -> i32 {
-    // <- a + b
-// }
+_FN add(a, b) -> int {
+    //<- a + b
+}

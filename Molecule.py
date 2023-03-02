@@ -4,13 +4,20 @@
 # Python 3.11.1
 # Verison 0.4 (Alpha release)
     # ~ Fixed and improved 'put' statement
-    # ~ Optimised operator search by only searching for identifiers 
+    # ~ Optimised operator search by only searching for core identifiers 
     # ~ Operators now support same variable calculations: x + x
     # ~ '++' && '--' operator now function as intended
     # ~ Functions and their arguments are now stored
     # ~ Comments now increase linecount
     # ~ Enums restored to global
     # ~ Converted to format prints
+
+# Version 0.5
+    # ~ Functions can now be called (DO)
+    # ~ '=' operator now functions (DO)
+    # ~ Operator calc now uses enums for pattern matching 
+    # ~ Now supports '^' (exponent) operator
+    # ~ General cleanup
 
 # FIX first operand 0 issue on single operator!
 
@@ -22,21 +29,22 @@ class STATEMENT_CMDS():
     WIPE   = 2
     FOR    = 3
     IF     = 4
-class OPERATOR_TOKENS():
+class OP_TOKENS():
     ADD    = 0
     SUB    = 1
     DIV    = 2
     MUL    = 3
-    ADD_D  = 4
-    SUB_D  = 5
-    IS_EQ  = 6
-    ADD_EQ = 7
-    SUB_EQ = 8
-    DIV_EQ = 9
-    MUL_EQ = 10
-    FN_RET = 11
-    RET    = 12
-    EQ     = 13
+    EQ     = 4
+    EX     = 5
+    ADD_D  = 6
+    SUB_D  = 7
+    IS_EQ  = 8
+    ADD_EQ = 9
+    SUB_EQ = 10
+    DIV_EQ = 11
+    MUL_EQ = 12
+    FN_RET = 13
+    RET    = 14
 
 class FUNCTION_RETURN_CODE():
     INT = 0
@@ -71,7 +79,7 @@ class Program:
         # === VARIABLES ===
         self.variables = {}
         self.lastType : str = "" # Used for variable compile
-        self.operators = ['+', '-', '/', '*', '++', '--', '==', '+=', '-=', '/=', '*=', '->', '<-', '=']
+        self.operators = ['+', '-', '/', '*', '=', '^', '++', '--', '==', '+=', '-=', '/=', '*=', '->', '<-']
         # === MISC ===
         self.DEBUG = debugActive
         # === RUN ===
@@ -97,6 +105,9 @@ class Program:
     def function_call(self, index : int) -> bool:
         print(f"{self.source[index]}")
         return False
+    
+    def function_compile(self) -> bool:
+        ...
 
     def variable_compile(self) -> bool:
         if self.source[0].find("_VAR") == -1:
@@ -163,56 +174,64 @@ class Program:
                 elif cur_line[i] == '.':
                     s_type = 1
         match op_code:
-            case 0: # +
+            case OP_TOKENS.ADD: # +
                 if found_f_var and found_s_var: return self.variables[var_1] + self.variables[var_2]
-                else: 
-                    match f_type:
-                        case 0: var_1 = int(var_1)
-                        case 1: var_1 = float(var_1)
-                    match s_type:
-                        case 0: var_2 = int(var_2)
-                        case 1: var_2 = float(var_2)
-                    return var_1 + var_2
-            case 1: # -
+                match f_type:
+                    case 0: var_1 = int(var_1)
+                    case 1: var_1 = float(var_1)
+                match s_type:
+                    case 0: var_2 = int(var_2)
+                    case 1: var_2 = float(var_2)
+                return var_1 + var_2
+            case OP_TOKENS.SUB: # -
                 if found_f_var and found_s_var: return self.variables[var_1] - self.variables[var_2]
-                else: 
-                    match f_type:
-                        case 0: var_1 = int(var_1)
-                        case 1: var_1 = float(var_1)
-                    match s_type:
-                        case 0: var_2 = int(var_2)
-                        case 1: var_2 = float(var_2)
-                    return var_1 - var_2
-            case 2: # /
+                match f_type:
+                    case 0: var_1 = int(var_1)
+                    case 1: var_1 = float(var_1)
+                match s_type:
+                    case 0: var_2 = int(var_2)
+                    case 1: var_2 = float(var_2)
+                return var_1 - var_2
+            case OP_TOKENS.DIV: # /
                 if found_f_var and found_s_var: return self.variables[var_1] / self.variables[var_2]
-                else: 
-                    match f_type:
-                        case 0: var_1 = int(var_1)
-                        case 1: var_1 = float(var_1)
-                    match s_type:
-                        case 0: var_2 = int(var_2)
-                        case 1: var_2 = float(var_2)
-                    return var_1 / var_2
-            case 3: # *
+                match f_type:
+                    case 0: var_1 = int(var_1)
+                    case 1: var_1 = float(var_1)
+                match s_type:
+                    case 0: var_2 = int(var_2)
+                    case 1: var_2 = float(var_2)
+                return var_1 / var_2
+            case OP_TOKENS.MUL: # *
                 if found_f_var and found_s_var: return self.variables[var_1] * self.variables[var_2]
-                else: 
-                    match f_type:
-                        case 0: var_1 = int(var_1)
-                        case 1: var_1 = float(var_1)
-                    match s_type:
-                        case 0: var_2 = int(var_2)
-                        case 1: var_2 = float(var_2)
-                    return var_1 * var_2
-            case 4: # ++
+                match f_type:
+                    case 0: var_1 = int(var_1)
+                    case 1: var_1 = float(var_1)
+                match s_type:
+                    case 0: var_2 = int(var_2)
+                    case 1: var_2 = float(var_2)
+                return var_1 * var_2
+            case OP_TOKENS.ADD_D: # ++
                 if found_f_var: 
                     self.variables[var_1] += 1
                     return self.variables[var_1]
-            case 5: # --
+            case OP_TOKENS.SUB_D: # --
                 if found_f_var: 
                     self.variables[var_1] -= 1
                     return self.variables[var_1]
-            case 6:
-                ...
+            case OP_TOKENS.EQ: # = 
+                if found_f_var and not found_s_var:
+                    self.variables[var_1] = var_2
+                elif not found_f_var and found_s_var:
+                    self.variables[var_2] = var_1
+            case OP_TOKENS.EX:
+                if found_f_var and found_s_var: return self.variables[var_1] ** self.variables[var_2]
+                match f_type:
+                    case 0: var_1 = int(var_1)
+                    case 1: var_1 = float(var_1)
+                match s_type:
+                    case 0: var_2 = int(var_2)
+                    case 1: var_2 = float(var_2)
+                return var_1**var_2
         return 0
         
     def lexer(self) -> bool:
@@ -270,36 +289,42 @@ class Program:
                 ...
             # ================== OPERATORS ==================
             # Scan for operators: +, -, /, *, ++, --, etc.
-            for i in range(0, 4): # Only scan through identifiers
+            for i in range(0, 6): # Only scan through identifiers
                 index : int = self.source[line].find(self.operators[i])
                 if index != -1: 
                     op_code : int = -1 # Pattern match
                     match self.source[line][index]:
                         case '+':
-                            op_code = OPERATOR_TOKENS.ADD
+                            op_code = OP_TOKENS.ADD
                             match self.source[line][index+1]:
-                                case '+': op_code = OPERATOR_TOKENS.ADD_D
-                                case '=': op_code = OPERATOR_TOKENS.ADD_EQ
+                                case '+': op_code = OP_TOKENS.ADD_D
+                                case '=': op_code = OP_TOKENS.ADD_EQ
                         case '-':
-                            op_code = OPERATOR_TOKENS.SUB
+                            op_code = OP_TOKENS.SUB
                             match self.source[line][index+1]: 
-                                case '>': op_code = OPERATOR_TOKENS.FN_RET
-                                case '=': op_code = OPERATOR_TOKENS.SUB_EQ
+                                case '>': op_code = OP_TOKENS.FN_RET
+                                case '=': op_code = OP_TOKENS.SUB_EQ
                             match self.source[line][index-1]:
-                                case '<': op_code = OPERATOR_TOKENS.RET
+                                case '<': op_code = OP_TOKENS.RET
                         case '/':
-                            op_code = OPERATOR_TOKENS.DIV
+                            op_code = OP_TOKENS.DIV
                             match self.source[line][index+1]:
-                                case '=': op_code = OPERATOR_TOKENS.DIV_EQ
+                                case '=': op_code = OP_TOKENS.DIV_EQ
                         case '*':
-                            op_code = OPERATOR_TOKENS.MUL
+                            op_code = OP_TOKENS.MUL
                             match self.source[line][index+1]:
-                                case '=': op_code = OPERATOR_TOKENS.MUL_EQ
+                                case '=': op_code = OP_TOKENS.MUL_EQ
                         case '=':
-                            op_code = OPERATOR_TOKENS.EQ
-                            if self.source[line][index+1] == '=': op_code = OPERATOR_TOKENS.IS_EQ
+                            op_code = OP_TOKENS.EQ
+                            if self.source[line][index+1] == '=': op_code = OP_TOKENS.IS_EQ
+                        case '^':
+                            op_code = OP_TOKENS.EX
                     line_output = self.operator_calc(self.source[line], index, op_code)
             # ================== FUNCTIONS ==================
+            if self.source[line].find("_FN BLOCK") != -1:
+                for i in range(line+1, len(self.source)):
+                    ...
+                    #print(self.source[j])
             if self.source[line].find("_FN") != -1:
                 fn_name : str = "" # Make global
                 has_args : bool = False
@@ -344,10 +369,10 @@ class Program:
         return True
 
     def execute(self) -> bool:
-        # Iterates over stored assets and computes
-        #execute_queue : queue = queue.Queue(20) # Max func size of 20
-        for func in self.functions:
-            func.EXECUTE_FUNCTION()
+        for line in self.source:
+            ...
+            #for func in self.functions:
+                #func.EXECUTE_FUNCTION()
         return False
 
 def main() -> None:

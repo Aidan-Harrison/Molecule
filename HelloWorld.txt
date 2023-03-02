@@ -8,12 +8,17 @@ _VAR {
 }
 
 _START {
+    put x
+    x = 15
+    put x
+
     // put 5 + 5
     // put x - y
 
     // put test + 5
 
     // put x + y
+    // put x^x
 
     // c = x^3
     // put c 
@@ -22,17 +27,20 @@ _START {
     put msg
 
     // wipe msg
-    // msg = "Other"
-    // put msg
+
+    msg = "Other"
+    put msg
 
     // for 15 {
         // i++
         // put i
     // }
 
-    add(5, 5)
+    // add(5, 5)
 }
 
-_FN add(a, b) -> int {
-    //<- a + b
+_FN_BLOCK {
+    _FN add(a, b) -> int {
+        //<- a + b
+    }
 }

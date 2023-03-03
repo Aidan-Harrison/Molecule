@@ -12,16 +12,28 @@
     # ~ Enums restored to global
     # ~ Converted to format prints
 
-# Version 0.5
-    # ~ Functions can now be called (DO)
-    # ~ '=' operator now functions (DO)
+# Version 0.4.5
     # ~ Operator calc now uses enums for pattern matching 
     # ~ Now supports '^' (exponent) operator
     # ~ General cleanup
 
-# FIX first operand 0 issue on single operator!
+# Version 0.5
+    # ~ Changed _FN compile to pre _START instead of post
+    # ~ Empty operands are now accounted for
+    # ~ var -> value & value -> var operands are now supported
+    # ~ '=' operator now functions
+    # ~ Now supports the '^=' operator
+    # ~ Updated basis for function calling:
+        # ~ Function body now stored
+        # ~ Functions will be called using the 'call' command
 
-import queue
+    # ~ Functions can now be called (DO)
+        # Done via call command 
+
+# To-do
+# FIX first operand 0 issue on single operator!
+# Rewrite operator check to do global assignment (code compress)
+
 import time
 from enum import Enum
 class STATEMENT_CMDS():
@@ -29,6 +41,7 @@ class STATEMENT_CMDS():
     WIPE   = 2
     FOR    = 3
     IF     = 4
+    CALL   = 5
 class OP_TOKENS():
     ADD    = 0
     SUB    = 1
@@ -43,8 +56,9 @@ class OP_TOKENS():
     SUB_EQ = 10
     DIV_EQ = 11
     MUL_EQ = 12
-    FN_RET = 13
-    RET    = 14
+    EX_EQ  = 13
+    FN_RET = 14
+    RET    = 15
 
 class FUNCTION_RETURN_CODE():
     INT = 0
@@ -79,7 +93,7 @@ class Program:
         # === VARIABLES ===
         self.variables = {}
         self.lastType : str = "" # Used for variable compile
-        self.operators = ['+', '-', '/', '*', '=', '^', '++', '--', '==', '+=', '-=', '/=', '*=', '->', '<-']
+        self.operators = ['+', '-', '/', '*', '=', '^', '++', '--', '==', '+=', '-=', '/=', '*=', '^=', '->', '<-']
         # === MISC ===
         self.DEBUG = debugActive
         # === RUN ===
@@ -107,7 +121,8 @@ class Program:
         return False
     
     def function_compile(self) -> bool:
-        ...
+        for i in range(self.start_index, len(self.source)):
+            ...
 
     def variable_compile(self) -> bool:
         if self.source[0].find("_VAR") == -1:
@@ -151,7 +166,7 @@ class Program:
         found_s_var : bool = False
         f_type : int = 0 # Defines type | 0 = INT, 1 = FLOAT, ... 
         s_type : int = 0  
-        for var in self.variables: 
+        for var in self.variables: # Variable check
             l_position : int = cur_line.find(var) # Allows for same variable
             r_position : int = cur_line.rfind(var)
             if l_position != -1 and l_position < index: # Left side
@@ -162,20 +177,30 @@ class Program:
                 found_s_var = True
             if found_f_var and found_s_var: 
                 break # Prevents overchecking
-        if not found_f_var and not found_s_var: 
+        if not found_f_var: # Check for left value
             for i in range(index-1, -1, -1):
                 if cur_line[i].isdigit():
                     var_1 += cur_line[i]
                 elif cur_line[i] == '.': # Change! Float check
                     f_type = 1
+        #if var_1 == "":
+            #return
+        if not found_s_var:
             for i in range(index+1, len(cur_line)):
+                if cur_line[i] == '"':
+                    continue
                 if cur_line[i].isdigit():
                     var_2 += cur_line[i]
                 elif cur_line[i] == '.':
                     s_type = 1
+        # print("Right operand: ", var_2)
+        if var_2 == "":
+            return
         match op_code:
             case OP_TOKENS.ADD: # +
-                if found_f_var and found_s_var: return self.variables[var_1] + self.variables[var_2]
+                if found_f_var and found_s_var:       return self.variables[var_1] + self.variables[var_2]
+                elif found_f_var and not found_s_var: return self.variables[var_1] + int(var_2)
+                elif not found_f_var and found_s_var: return int(var_1) + self.variables[var_2]
                 match f_type:
                     case 0: var_1 = int(var_1)
                     case 1: var_1 = float(var_1)
@@ -184,7 +209,9 @@ class Program:
                     case 1: var_2 = float(var_2)
                 return var_1 + var_2
             case OP_TOKENS.SUB: # -
-                if found_f_var and found_s_var: return self.variables[var_1] - self.variables[var_2]
+                if found_f_var and found_s_var:       return self.variables[var_1] - self.variables[var_2]
+                elif found_f_var and not found_s_var: return self.variables[var_1] - int(var_2)
+                elif not found_f_var and found_s_var: return int(var_1) - self.variables[var_2]
                 match f_type:
                     case 0: var_1 = int(var_1)
                     case 1: var_1 = float(var_1)
@@ -193,7 +220,9 @@ class Program:
                     case 1: var_2 = float(var_2)
                 return var_1 - var_2
             case OP_TOKENS.DIV: # /
-                if found_f_var and found_s_var: return self.variables[var_1] / self.variables[var_2]
+                if found_f_var and found_s_var:       return self.variables[var_1] / self.variables[var_2]
+                elif found_f_var and not found_s_var: return self.variables[var_1] / int(var_2)
+                elif not found_f_var and found_s_var: return int(var_1) / self.variables[var_2]
                 match f_type:
                     case 0: var_1 = int(var_1)
                     case 1: var_1 = float(var_1)
@@ -202,7 +231,9 @@ class Program:
                     case 1: var_2 = float(var_2)
                 return var_1 / var_2
             case OP_TOKENS.MUL: # *
-                if found_f_var and found_s_var: return self.variables[var_1] * self.variables[var_2]
+                if found_f_var and found_s_var:       return self.variables[var_1] * self.variables[var_2]
+                elif found_f_var and not found_s_var: return self.variables[var_1] * int(var_2)
+                elif not found_f_var and found_s_var: return int(var_1) * self.variables[var_2]
                 match f_type:
                     case 0: var_1 = int(var_1)
                     case 1: var_1 = float(var_1)
@@ -219,12 +250,16 @@ class Program:
                     self.variables[var_1] -= 1
                     return self.variables[var_1]
             case OP_TOKENS.EQ: # = 
-                if found_f_var and not found_s_var:
-                    self.variables[var_1] = var_2
-                elif not found_f_var and found_s_var:
-                    self.variables[var_2] = var_1
+                if found_f_var and found_s_var: self.variables[var_1] = self.variables[var_2]
+                elif found_f_var and not found_s_var: 
+                    match s_type:
+                        case 0: self.variables[var_1] = int(var_2)
+                        case 1: self.variables[var_1] = float(var_2)
+                        case 2: self.variables[var_1] = var_2
             case OP_TOKENS.EX:
-                if found_f_var and found_s_var: return self.variables[var_1] ** self.variables[var_2]
+                if found_f_var and found_s_var:       return self.variables[var_1] ** self.variables[var_2]
+                elif found_f_var and not found_s_var: return self.variables[var_1] ** int(var_2)
+                elif not found_f_var and found_s_var: return int(var_1) ** self.variables[var_2]
                 match f_type:
                     case 0: var_1 = int(var_1)
                     case 1: var_1 = float(var_1)
@@ -232,6 +267,13 @@ class Program:
                     case 0: var_2 = int(var_2)
                     case 1: var_2 = float(var_2)
                 return var_1**var_2
+            case OP_TOKENS.EX_EQ:
+                if found_f_var and found_s_var:       
+                    result = self.variables[var_1] ** self.variables[var_2]
+                    self.variables[var_1] = result
+                elif found_f_var and not found_s_var: 
+                    result = self.variables[var_1] ** int(var_2)
+                    self.variables[var_1] = result
         return 0
         
     def lexer(self) -> bool:
@@ -293,6 +335,8 @@ class Program:
                 index : int = self.source[line].find(self.operators[i])
                 if index != -1: 
                     op_code : int = -1 # Pattern match
+                    if index + 1 > len(self.source[line])-1:
+                        break
                     match self.source[line][index]:
                         case '+':
                             op_code = OP_TOKENS.ADD
@@ -319,6 +363,8 @@ class Program:
                             if self.source[line][index+1] == '=': op_code = OP_TOKENS.IS_EQ
                         case '^':
                             op_code = OP_TOKENS.EX
+                            match self.source[line][index+1]:
+                                case '=': op_code = OP_TOKENS.EX_EQ
                     line_output = self.operator_calc(self.source[line], index, op_code)
             # ================== FUNCTIONS ==================
             if self.source[line].find("_FN BLOCK") != -1:
@@ -349,7 +395,16 @@ class Program:
                     if self.source[line][i] != ' ': # Name
                         fn_name += self.source[line][i]
                 new_function : FUNCTION_STORAGE = FUNCTION_STORAGE(fn_name, arguments, line)
+                for i in range(line, len(self.source)): # Get body
+                    if self.source[line] == "} ":
+                        break
+                    new_function.body.append(self.source[line])
+                    # del self.source[line] # FIX!
                 self.functions.append(new_function)
+            if self.source[line].find("call") != -1:
+                for func in self.functions:
+                    if self.source[line].find(func.name):
+                        func.EXECUTE_FUNCTION()
             # ================== FN EXECUTE ================== | REMOVE!
             if self.source[line].find("(") != -1 and self.source[line].find(")") != -1:
                 if self.source[line].find("_FN") == -1:
@@ -376,9 +431,9 @@ class Program:
         return False
 
 def main() -> None:
-    start = time.perf_counter()
+    #start = time.perf_counter()
     newProgram : Program = Program("HelloWorld.txt", True)
-    print(f"\n\n\nTime {time.perf_counter() - start} seconds")
+    #print(f"\n\n\nTime {time.perf_counter() - start} seconds")
 
 if __name__ == "__main__":
     main()

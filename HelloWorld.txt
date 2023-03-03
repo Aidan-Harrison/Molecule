@@ -7,10 +7,20 @@ _VAR {
     msg : str = "Hello, world"
 }
 
+_FN test() -> void {
+    put "Test"
+}
+
+_FN add(a, b) -> int {
+    <- a + b
+}
+
 _START {
+    x ^= 5
     put x
-    x = 15
-    put x
+
+    // x = 15
+    // put x
 
     // put 5 + 5
     // put x - y
@@ -23,11 +33,12 @@ _START {
     // c = x^3
     // put c 
 
-    put "Hello, world"
-    put msg
+    // put "Hello, world"
+    // put msg
 
     // wipe msg
 
+    put msg
     msg = "Other"
     put msg
 
@@ -36,11 +47,5 @@ _START {
         // put i
     // }
 
-    // add(5, 5)
-}
-
-_FN_BLOCK {
-    _FN add(a, b) -> int {
-        //<- a + b
-    }
+    call add(5, 5)
 }

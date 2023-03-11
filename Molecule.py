@@ -2,20 +2,7 @@
 # Aid Harrison
 # 2023
 # Python 3.11.1
-# Verison 0.4 (Alpha release)
-    # ~ Fixed and improved 'put' statement
-    # ~ Optimised operator search by only searching for core identifiers 
-    # ~ Operators now support same variable calculations: x + x
-    # ~ '++' && '--' operator now function as intended
-    # ~ Functions and their arguments are now stored
-    # ~ Comments now increase linecount
-    # ~ Enums restored to global
-    # ~ Converted to format prints
-
-# Version 0.4.5
-    # ~ Operator calc now uses enums for pattern matching 
-    # ~ Now supports '^' (exponent) operator
-    # ~ General cleanup
+# ALPHA RELEASE
 
 # Version 0.5
     # ~ Changed _FN compile to pre _START instead of post
@@ -27,8 +14,10 @@
         # ~ Function body now stored
         # ~ Functions will be called using the 'call' command
 
+# Version 0.6
     # ~ Functions can now be called (DO)
         # Done via call command 
+
 
 # To-do
 # FIX first operand 0 issue on single operator!
@@ -121,8 +110,38 @@ class Program:
         return False
     
     def function_compile(self) -> bool:
-        for i in range(self.start_index, len(self.source)):
-            ...
+        for line in range(self.start_index, len(self.source)):
+            if self.source[line].find("("):
+                fn_name : str = "" # Make global
+                has_args : bool = False
+                arguments = []
+                for i in range(3, len(self.source[line])):
+                    if self.source[line][i] == '(': # Argument search
+                        curArgument : str = ""
+                        for j in range(i+1, len(self.source[line])):
+                            if self.source[line][j] == ',': # New var
+                                arguments.append(curArgument)
+                                curArgument = ""
+                            elif self.source[line][j] == ' ':
+                                continue
+                            elif self.source[line][j] == ')':
+                                arguments.append(curArgument)
+                                has_args = True
+                                break
+                            else:
+                                curArgument += self.source[line][j]
+                    if has_args:
+                        break
+                    if self.source[line][i] != ' ': # Name
+                        fn_name += self.source[line][i]
+                new_function : FUNCTION_STORAGE = FUNCTION_STORAGE(fn_name, arguments, line)
+                for i in range(line, len(self.source)): # Get body
+                    new_function.body.append(self.source[line])
+                    # del self.source[line] # FIX!
+            elif self.source[line].find("END"): # Store function and reset
+                self.functions.append(new_function)
+                continue
+        return False
 
     def variable_compile(self) -> bool:
         if self.source[0].find("_VAR") == -1:
@@ -158,6 +177,7 @@ class Program:
         return True
 
     def operator_calc(self, cur_line : str, index : int, op_code : int): 
+        #print(f"{op_code} found at line:  \t{cur_line}")
         # Account for -> and <-
         # Change to allow variable + raw value!
         var_1 : str = ""
@@ -188,11 +208,14 @@ class Program:
         if not found_s_var:
             for i in range(index+1, len(cur_line)):
                 if cur_line[i] == '"':
+                    s_type = 2
                     continue
                 if cur_line[i].isdigit():
                     var_2 += cur_line[i]
                 elif cur_line[i] == '.':
                     s_type = 1
+                else:
+                    var_2 += cur_line[i]
         # print("Right operand: ", var_2)
         if var_2 == "":
             return
@@ -249,7 +272,7 @@ class Program:
                 if found_f_var: 
                     self.variables[var_1] -= 1
                     return self.variables[var_1]
-            case OP_TOKENS.EQ: # = 
+            case OP_TOKENS.EQ: # =
                 if found_f_var and found_s_var: self.variables[var_1] = self.variables[var_2]
                 elif found_f_var and not found_s_var: 
                     match s_type:
@@ -287,7 +310,11 @@ class Program:
         if not self.variable_compile() and self.DEBUG:
             print("No variable storage found")
         lineCount : int = 0
+        hasFunctions : bool = False
         for line in range(self.start_index, len(self.source)):
+            if not hasFunctions and self.source[line].find("_FN_BLOCK"): # Early break, prevents call to find()
+                self.function_compile()
+                hasFunctions = True
             is_print_line : bool = False # Used for printing anything post "put"
             line_output : str = ""
             f_index : int = -1

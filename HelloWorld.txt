@@ -7,17 +7,19 @@ _VAR {
     msg : str = "Hello, world"
 }
 
-_FN test() -> void {
-    put "Test"
-}
+_FN_BLOCK {
+    //test() -> void
+        //put "Test"
+    //END
 
-_FN add(a, b) -> int {
-    <- a + b
+    //add(a, b) -> int
+        //<- a + b
+    //END
 }
 
 _START {
-    x ^= 5
-    put x
+    // x ^= 5
+    // put x
 
     // x = 15
     // put x

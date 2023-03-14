@@ -8,9 +8,9 @@ _VAR {
 }
 
 _FN_BLOCK {
-    //test() -> void
-        //put "Test"
-    //END
+    test() -> void
+        put "Test"
+    END
 
     //add(a, b) -> int
         //<- a + b

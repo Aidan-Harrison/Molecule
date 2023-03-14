@@ -14,10 +14,13 @@
         # ~ Function body now stored
         # ~ Functions will be called using the 'call' command
 
+# Version 0.5.5
+    # ~ Improved function name and argument algorithm
+    # ~ Function body improvements
+
 # Version 0.6
     # ~ Functions can now be called (DO)
-        # Done via call command 
-
+        # Done via call command
 
 # To-do
 # FIX first operand 0 issue on single operator!
@@ -110,37 +113,38 @@ class Program:
         return False
     
     def function_compile(self) -> bool:
-        for line in range(self.start_index, len(self.source)):
-            if self.source[line].find("("):
-                fn_name : str = "" # Make global
-                has_args : bool = False
-                arguments = []
-                for i in range(3, len(self.source[line])):
-                    if self.source[line][i] == '(': # Argument search
-                        curArgument : str = ""
-                        for j in range(i+1, len(self.source[line])):
-                            if self.source[line][j] == ',': # New var
-                                arguments.append(curArgument)
-                                curArgument = ""
-                            elif self.source[line][j] == ' ':
-                                continue
-                            elif self.source[line][j] == ')':
-                                arguments.append(curArgument)
-                                has_args = True
-                                break
-                            else:
-                                curArgument += self.source[line][j]
-                    if has_args:
-                        break
-                    if self.source[line][i] != ' ': # Name
-                        fn_name += self.source[line][i]
+        for line in range(self.start_index, len(self.source)): # Start index?
+            index : int = self.source[line].find('(')
+            # Get name
+            fn_name : str = "" # Make global
+            for i in range(index, -1, -1):
+                if self.source[line][i] != ' ':
+                    fn_name += self.source[line][i]
+                else:
+                    break
+            if fn_name == "" and index != -1:
+                print(f"Invalid function decleration at line {self.source[line]}")
+            # Get arguments
+            arguments = []
+            curArgument : str = ""
+            for i in range(index+1, len(self.source[line])):
+                if self.source[line][i] == ')':
+                    break
+                if self.source[line][i] == ',': # Seperator
+                    arguments.append(curArgument)
+                    curArgument = ""
+                    continue
+                if self.source[line][i] != ' ':
+                    curArgument += self.source[line][i]
                 new_function : FUNCTION_STORAGE = FUNCTION_STORAGE(fn_name, arguments, line)
                 for i in range(line, len(self.source)): # Get body
                     new_function.body.append(self.source[line])
                     # del self.source[line] # FIX!
-            elif self.source[line].find("END"): # Store function and reset
-                self.functions.append(new_function)
+                    if self.source[line].find("END"): # Store function and reset
+                        self.functions.append(new_function)
+                        break
                 continue
+        print(self.functions[0].name)
         return False
 
     def variable_compile(self) -> bool:
